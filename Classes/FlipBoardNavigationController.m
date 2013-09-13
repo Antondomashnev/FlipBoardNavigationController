@@ -128,7 +128,9 @@ typedef enum {
             _animationInProgress = NO;
             _gestures = [[NSMutableArray alloc] init];
             [self addPanGestureToViewController:[self currentViewController]];
-            handler();
+            if(handler != nil){
+                handler();
+            }
         }
     }];
 }
@@ -163,7 +165,9 @@ typedef enum {
             [self.viewControllers removeObject:currentVC];
             _animationInProgress = NO;
             [previousVC viewDidAppear:NO];
-            handler();
+            if(handler != nil){
+                handler();
+            }
         }
     }];
     
@@ -200,7 +204,9 @@ typedef enum {
                 [_viewControllers removeObjectsAtIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(1, [_viewControllers count] - 1)]];
                 _animationInProgress = NO;
                 [rootVC viewDidAppear:NO];
-                handler();
+                if(handler != nil){
+                    handler();
+                }
             }
         }];
     }
