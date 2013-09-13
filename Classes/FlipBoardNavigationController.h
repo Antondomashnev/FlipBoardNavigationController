@@ -43,6 +43,7 @@ typedef void (^FlipBoardNavigationControllerCompletionBlock)(void);
 
 @interface UIViewController (FlipBoardNavigationController)
 @property (nonatomic, retain) FlipBoardNavigationController *flipboardNavigationController;
+@property (nonatomic, readonly) UIPanGestureRecognizer *flipboardNavigationControllerPanGesture;
 @end
 
 

@@ -27,6 +27,7 @@
 
 #import "FlipBoardNavigationController.h"
 #import <QuartzCore/QuartzCore.h>
+#import <objc/runtime.h>
 
 static const CGFloat kAnimationDuration = 0.5f;
 static const CGFloat kAnimationDelay = 0.0f;
@@ -38,6 +39,11 @@ typedef enum {
     PanDirectionRight = 2
 } PanDirection;
 
+@interface UIViewController()
+
+@property (nonatomic, retain, readwrite) UIPanGestureRecognizer *flipboardNavigationControllerPanGesture;
+
+@end
 
 @interface FlipBoardNavigationController ()<UIGestureRecognizerDelegate>{
     NSMutableArray *_gestures;
@@ -47,7 +53,7 @@ typedef enum {
     CGFloat _percentageOffsetFromLeft;
 }
 
-- (void) addPanGestureToView:(UIView*)view;
+- (void) addPanGestureToViewController:(UIViewController*)viewController;
 - (void) rollBackViewController;
 
 - (UIViewController *)currentViewController;
@@ -121,7 +127,7 @@ typedef enum {
             [viewController didMoveToParentViewController:self];
             _animationInProgress = NO;
             _gestures = [[NSMutableArray alloc] init];
-            [self addPanGestureToView:[self currentViewController].view];
+            [self addPanGestureToViewController:[self currentViewController]];
             handler();
         }
     }];
@@ -215,14 +221,15 @@ typedef enum {
 }
 
 #pragma mark - Add Pan Gesture
-- (void) addPanGestureToView:(UIView*)view
+- (void) addPanGestureToViewController:(UIViewController*)viewController
 {
     NSLog(@"ADD PAN GESTURE $$### %i",[_gestures count]);
     UIPanGestureRecognizer* panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self
                                                                                  action:@selector(gestureRecognizerDidPan:)];
     panGesture.cancelsTouchesInView = YES;
     panGesture.delegate = self;
-    [view addGestureRecognizer:panGesture];
+    viewController.flipboardNavigationControllerPanGesture = panGesture;
+    [viewController.view addGestureRecognizer:panGesture];
     [_gestures addObject:panGesture];
     panGesture = nil;
 }
@@ -230,7 +237,18 @@ typedef enum {
 # pragma mark - Avoid Unwanted Vertical Gesture
 - (BOOL)gestureRecognizerShouldBegin:(UIPanGestureRecognizer *)panGestureRecognizer {
     CGPoint translation = [panGestureRecognizer translationInView:self.view];
-    return fabs(translation.x) > fabs(translation.y) ;
+    if(fabs(translation.x) > fabs(translation.y)){
+        UIViewController *currentViewController = [self currentViewController];
+        if([currentViewController respondsToSelector:@selector(gestureRecognizerShouldBegin:)]){
+            return [(UIViewController<UIGestureRecognizerDelegate> *)currentViewController gestureRecognizerShouldBegin:panGestureRecognizer];
+        }
+        else{
+            return YES;
+        }
+    }
+    else{
+        return NO;
+    }
 }
 
 #pragma mark - Gesture recognizer
@@ -242,6 +260,10 @@ typedef enum {
 }
 
 - (BOOL) gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    UIViewController *currentViewController = [self currentViewController];
+    if([currentViewController respondsToSelector:@selector(gestureRecognizer:shouldRecognizeSimultaneouslyWithGestureRecognizer:)]){
+        return [(UIViewController<UIGestureRecognizerDelegate> *)currentViewController gestureRecognizer:gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:otherGestureRecognizer];
+    }
     return YES;
 }
 
@@ -341,9 +363,20 @@ typedef enum {
 
 
 #pragma mark - UIViewController Category
+
+NSString* const FlipboardNavigationControllerPanGesture = @"FlipboardNavigationControllerPanGesture";
+
 //For Global Access of flipViewController
 @implementation UIViewController (FlipBoardNavigationController)
 @dynamic flipboardNavigationController;
+
+- (void)setFlipboardNavigationControllerPanGesture:(UIPanGestureRecognizer *)flipboardNavigationControllerPanGesture{
+    objc_setAssociatedObject(self, (__bridge const void *)(FlipboardNavigationControllerPanGesture), flipboardNavigationControllerPanGesture, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (UIPanGestureRecognizer *)flipboardNavigationControllerPanGesture{
+    return objc_getAssociatedObject(self, (__bridge const void *)(FlipboardNavigationControllerPanGesture));
+}
 
 - (FlipBoardNavigationController *)flipboardNavigationController
 {
