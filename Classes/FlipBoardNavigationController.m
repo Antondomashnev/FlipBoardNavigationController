@@ -116,7 +116,7 @@ typedef enum {
     [self addChildViewController:viewController];
     [self.view bringSubviewToFront:_blackMask];
     [self.view addSubview:viewController.view];
-    [UIView animateWithDuration:kAnimationDuration delay:kAnimationDelay options:0 animations:^{
+    [UIView animateWithDuration:self.transitionsAnimationDuration delay:kAnimationDelay options:0 animations:^{
         CGAffineTransform transf = CGAffineTransformIdentity;
         [self currentViewController].view.transform = CGAffineTransformScale(transf, 0.9f, 0.9f);
         viewController.view.frame = self.view.bounds;
@@ -147,7 +147,7 @@ typedef enum {
     UIViewController *currentVC = [self currentViewController];
     UIViewController *previousVC = [self previousViewController];
     [previousVC viewWillAppear:NO];
-    [UIView animateWithDuration:kAnimationDuration delay:kAnimationDelay options:0 animations:^{
+    [UIView animateWithDuration:self.transitionsAnimationDuration delay:kAnimationDelay options:0 animations:^{
         currentVC.view.frame = CGRectOffset(self.view.bounds, self.view.bounds.size.width, 0);
         CGAffineTransform transf = CGAffineTransformIdentity;
         previousVC.view.transform = CGAffineTransformScale(transf, 1.0, 1.0);
@@ -184,7 +184,7 @@ typedef enum {
     UIViewController *rootVC = [self rootViewController];
     if(![currentVC isEqual: rootVC]){
         [rootVC viewWillAppear:NO];
-        [UIView animateWithDuration:kAnimationDuration delay:kAnimationDelay options:0 animations:^{
+        [UIView animateWithDuration:self.transitionsAnimationDuration delay:kAnimationDelay options:0 animations:^{
             currentVC.view.frame = CGRectOffset(self.view.bounds, self.view.bounds.size.width, 0);
             CGAffineTransform transf = CGAffineTransformIdentity;
             rootVC.view.transform = CGAffineTransformScale(transf, 1.0, 1.0);
@@ -217,7 +217,7 @@ typedef enum {
     UIViewController * nvc = [self previousViewController];
     CGRect rect = CGRectMake(0, 0, vc.view.frame.size.width, vc.view.frame.size.height);
 
-    [UIView animateWithDuration:0.3f delay:kAnimationDelay options:0 animations:^{
+    [UIView animateWithDuration:self.transitionsAnimationDuration delay:kAnimationDelay options:0 animations:^{
         CGAffineTransform transf = CGAffineTransformIdentity;
         nvc.view.transform = CGAffineTransformScale(transf, 0.9f, 0.9f);
         vc.view.frame = rect;
