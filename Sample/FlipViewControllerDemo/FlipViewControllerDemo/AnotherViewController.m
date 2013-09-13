@@ -7,6 +7,7 @@
 //
 
 #import "AnotherViewController.h"
+#import "FlipBoardNavigationController.h"
 
 @interface AnotherViewController ()
 
@@ -33,6 +34,10 @@
 {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
+}
+
+- (void)popToRootClicked:(id)sender{
+    [self.flipboardNavigationController popToRootViewController];
 }
 
 @end

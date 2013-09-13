@@ -31,7 +31,9 @@ typedef void (^FlipBoardNavigationControllerCompletionBlock)(void);
 
 @interface FlipBoardNavigationController : UIViewController
 
-@property(nonatomic, retain) NSMutableArray *viewControllers;
+@property (nonatomic, copy) float(^alphaCalculationBlock)(CGFloat transition);
+@property (nonatomic, assign) NSTimeInterval transitionsAnimationDuration;
+@property (nonatomic, retain) NSMutableArray *viewControllers;
 
 - (id) initWithRootViewController:(UIViewController*)rootViewController;
 
@@ -39,6 +41,9 @@ typedef void (^FlipBoardNavigationControllerCompletionBlock)(void);
 - (void) pushViewController:(UIViewController *)viewController completion:(FlipBoardNavigationControllerCompletionBlock)handler;
 - (void) popViewController;
 - (void) popViewControllerWithCompletion:(FlipBoardNavigationControllerCompletionBlock)handler;
+- (void) popToRootViewController;
+- (void) popToRootViewControllerWithCompletion:(FlipBoardNavigationControllerCompletionBlock)handler;
+
 @end
 
 @interface UIViewController (FlipBoardNavigationController)

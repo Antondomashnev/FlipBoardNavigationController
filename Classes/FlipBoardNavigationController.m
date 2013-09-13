@@ -169,6 +169,43 @@ typedef enum {
     
 }
 
+- (void) popToRootViewController{
+    [self popToRootViewControllerWithCompletion:nil];
+}
+
+- (void) popToRootViewControllerWithCompletion:(FlipBoardNavigationControllerCompletionBlock)handler{
+    
+    _animationInProgress = YES;
+    if (self.viewControllers.count < 2) {
+        return;
+    }
+    
+    UIViewController *currentVC = [self currentViewController];
+    UIViewController *rootVC = [self rootViewController];
+    if(![currentVC isEqual: rootVC]){
+        [rootVC viewWillAppear:NO];
+        [UIView animateWithDuration:kAnimationDuration delay:kAnimationDelay options:0 animations:^{
+            currentVC.view.frame = CGRectOffset(self.view.bounds, self.view.bounds.size.width, 0);
+            CGAffineTransform transf = CGAffineTransformIdentity;
+            rootVC.view.transform = CGAffineTransformScale(transf, 1.0, 1.0);
+            rootVC.view.frame = self.view.bounds;
+            _blackMask.alpha = 0.0;
+        } completion:^(BOOL finished) {
+            if (finished) {
+                [currentVC.view removeFromSuperview];
+                [currentVC willMoveToParentViewController:nil];
+                [self.view bringSubviewToFront:[self previousViewController].view];
+                [currentVC removeFromParentViewController];
+                [currentVC didMoveToParentViewController:nil];
+                [_viewControllers removeObjectsAtIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(1, [_viewControllers count] - 1)]];
+                _animationInProgress = NO;
+                [rootVC viewDidAppear:NO];
+                handler();
+            }
+        }];
+    }
+}
+
 - (void) popViewController {
     [self popViewControllerWithCompletion:^{}];
 }
@@ -216,6 +253,14 @@ typedef enum {
     UIViewController *result = nil;
     if ([self.viewControllers count]>1) {
         result = [self.viewControllers objectAtIndex:self.viewControllers.count - 2];
+    }
+    return result;
+}
+
+- (UIViewController *)rootViewController {
+    UIViewController *result = nil;
+    if ([self.viewControllers count]>0) {
+        result = [self.viewControllers objectAtIndex:0];
     }
     return result;
 }
@@ -307,7 +352,7 @@ typedef enum {
 - (void) transformAtPercentage:(CGFloat)percentage {
     CGAffineTransform transf = CGAffineTransformIdentity;
     CGFloat newTransformValue =  1 - (percentage*10)/100;
-    CGFloat newAlphaValue = percentage* kMaxBlackMaskAlpha;
+    CGFloat newAlphaValue = (self.alphaCalculationBlock != nil) ? self.alphaCalculationBlock(percentage) : percentage* kMaxBlackMaskAlpha;
     [self previousViewController].view.transform = CGAffineTransformScale(transf,newTransformValue,newTransformValue);
     _blackMask.alpha = newAlphaValue;
 }
