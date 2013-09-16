@@ -32,6 +32,7 @@ typedef void (^FlipBoardNavigationControllerCompletionBlock)(void);
 @interface FlipBoardNavigationController : UIViewController
 
 @property (nonatomic, copy) float(^alphaCalculationBlock)(CGFloat transition);
+@property (nonatomic, copy) float(^transformCalculationBlock)(CGFloat percentage);
 @property (nonatomic, assign) NSTimeInterval transitionsAnimationDuration;
 @property (nonatomic, retain) NSMutableArray *viewControllers;
 

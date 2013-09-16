@@ -4,7 +4,7 @@
 //
 // Created by Michael henry Pantaleon on 4/30/13.
 // Copyright (c) 2013 Michael Henry Pantaleon. All rights reserved.
-// 
+//
 // Version 1.0
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -86,11 +86,11 @@ typedef enum {
 - (void) loadView {
     [super loadView];
     CGRect viewRect = [self viewBoundsWithOrientation:self.interfaceOrientation];
-   
+    
     UIViewController *rootViewController = [self.viewControllers objectAtIndex:0];
     [rootViewController willMoveToParentViewController:self];
     [self addChildViewController:rootViewController];
-   
+    
     UIView * rootView = rootViewController.view;
     rootView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
     rootView.frame = viewRect;
@@ -118,7 +118,8 @@ typedef enum {
     [self.view addSubview:viewController.view];
     [UIView animateWithDuration:self.transitionsAnimationDuration delay:kAnimationDelay options:0 animations:^{
         CGAffineTransform transf = CGAffineTransformIdentity;
-        [self currentViewController].view.transform = CGAffineTransformScale(transf, 0.9f, 0.9f);
+        CGFloat scale = (self.transformCalculationBlock != nil) ? self.transformCalculationBlock(1) : 0.9f;
+        [self currentViewController].view.transform = CGAffineTransformScale(transf, scale, scale);
         viewController.view.frame = self.view.bounds;
         _blackMask.alpha = kMaxBlackMaskAlpha;
     }   completion:^(BOOL finished) {
@@ -152,7 +153,8 @@ typedef enum {
     [UIView animateWithDuration:self.transitionsAnimationDuration delay:kAnimationDelay options:0 animations:^{
         currentVC.view.frame = CGRectOffset(self.view.bounds, self.view.bounds.size.width, 0);
         CGAffineTransform transf = CGAffineTransformIdentity;
-        previousVC.view.transform = CGAffineTransformScale(transf, 1.0, 1.0);
+        CGFloat scale = (self.transformCalculationBlock != nil) ? self.transformCalculationBlock(0) : 1.0f;
+        previousVC.view.transform = CGAffineTransformScale(transf, scale, scale);
         previousVC.view.frame = self.view.bounds;
         _blackMask.alpha = 0.0;
     } completion:^(BOOL finished) {
@@ -190,8 +192,8 @@ typedef enum {
         [rootVC viewWillAppear:NO];
         [UIView animateWithDuration:self.transitionsAnimationDuration delay:kAnimationDelay options:0 animations:^{
             currentVC.view.frame = CGRectOffset(self.view.bounds, self.view.bounds.size.width, 0);
-            CGAffineTransform transf = CGAffineTransformIdentity;
-            rootVC.view.transform = CGAffineTransformScale(transf, 1.0, 1.0);
+            CGFloat scale = (self.transformCalculationBlock != nil) ? self.transformCalculationBlock(0) : 1.0f;
+            rootVC.view.transform = CGAffineTransformScale(CGAffineTransformIdentity, scale, scale);
             rootVC.view.frame = self.view.bounds;
             _blackMask.alpha = 0.0;
         } completion:^(BOOL finished) {
@@ -222,10 +224,12 @@ typedef enum {
     UIViewController * vc = [self currentViewController];
     UIViewController * nvc = [self previousViewController];
     CGRect rect = CGRectMake(0, 0, vc.view.frame.size.width, vc.view.frame.size.height);
-
+    
     [UIView animateWithDuration:self.transitionsAnimationDuration delay:kAnimationDelay options:0 animations:^{
+        
         CGAffineTransform transf = CGAffineTransformIdentity;
-        nvc.view.transform = CGAffineTransformScale(transf, 0.9f, 0.9f);
+        CGFloat scale = (self.transformCalculationBlock != nil) ? self.transformCalculationBlock(1) : 0.9f;
+        nvc.view.transform = CGAffineTransformScale(transf, scale, scale);
         vc.view.frame = rect;
         _blackMask.alpha = kMaxBlackMaskAlpha;
     }   completion:^(BOOL finished) {
@@ -237,12 +241,12 @@ typedef enum {
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
 {
- 
+    
     return (interfaceOrientation == UIInterfaceOrientationPortrait);
 }
 
 - (void) willRotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration {
-
+    
 }
 
 #pragma mark - ChildViewController
@@ -321,13 +325,13 @@ typedef enum {
 #pragma mark - Handle Panning Activity
 - (void) gestureRecognizerDidPan:(UIPanGestureRecognizer*)panGesture {
     if(_animationInProgress) return;
- 
+    
     CGPoint currentPoint = [panGesture translationInView:self.view];
     CGFloat x = currentPoint.x + _panOrigin.x;
     
     PanDirection panDirection = PanDirectionNone;
     CGPoint vel = [panGesture velocityInView:self.view];
-
+    
     if (vel.x > 0) {
         panDirection = PanDirectionRight;
     } else {
@@ -348,7 +352,7 @@ typedef enum {
         // If velocity is greater than 100 the Execute the Completion base on pan direction
         if(abs(vel.x) > 100) {
             [self completeSlidingAnimationWithDirection:panDirection];
-        }else { 
+        }else {
             [self completeSlidingAnimationWithOffset:offset];
         }
     }
@@ -357,7 +361,7 @@ typedef enum {
 #pragma mark - Set the required transformation based on percentage
 - (void) transformAtPercentage:(CGFloat)percentage {
     CGAffineTransform transf = CGAffineTransformIdentity;
-    CGFloat newTransformValue =  1 - (percentage*10)/100;
+    CGFloat newTransformValue =  (self.transformCalculationBlock != nil) ? self.transformCalculationBlock(percentage) : 1 - (percentage*10)/100;
     CGFloat newAlphaValue = (self.alphaCalculationBlock != nil) ? self.alphaCalculationBlock(percentage) : percentage* kMaxBlackMaskAlpha;
     [self previousViewController].view.transform = CGAffineTransformScale(transf,newTransformValue,newTransformValue);
     _blackMask.alpha = newAlphaValue;
@@ -374,9 +378,9 @@ typedef enum {
 
 #pragma mark - This will complete the animation base on offset
 - (void) completeSlidingAnimationWithOffset:(CGFloat)offset{
-   
+    
     if(offset<[self viewBoundsWithOrientation:self.interfaceOrientation].size.width/2) {
-         [self popViewController];
+        [self popViewController];
     }else {
         [self rollBackViewController];
     }
