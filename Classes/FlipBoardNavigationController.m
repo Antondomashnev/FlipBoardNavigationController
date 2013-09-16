@@ -190,6 +190,11 @@ typedef enum {
     UIViewController *rootVC = [self rootViewController];
     if(![currentVC isEqual: rootVC]){
         [rootVC viewWillAppear:NO];
+        for(int index = [self.viewControllers count] - 2; index > 0; index--){
+            UIViewController *vc = self.viewControllers[index];
+            [vc.view removeFromSuperview];
+            [vc removeFromParentViewController];
+        }
         [UIView animateWithDuration:self.transitionsAnimationDuration delay:kAnimationDelay options:0 animations:^{
             currentVC.view.frame = CGRectOffset(self.view.bounds, self.view.bounds.size.width, 0);
             CGFloat scale = (self.transformCalculationBlock != nil) ? self.transformCalculationBlock(0) : 1.0f;
@@ -200,7 +205,7 @@ typedef enum {
             if (finished) {
                 [currentVC.view removeFromSuperview];
                 [currentVC willMoveToParentViewController:nil];
-                [self.view bringSubviewToFront:[self previousViewController].view];
+                [self.view bringSubviewToFront:[self rootViewController].view];
                 [currentVC removeFromParentViewController];
                 [currentVC didMoveToParentViewController:nil];
                 [_viewControllers removeObjectsAtIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(1, [_viewControllers count] - 1)]];
