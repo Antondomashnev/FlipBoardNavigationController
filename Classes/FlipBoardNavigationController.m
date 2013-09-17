@@ -108,12 +108,12 @@ typedef enum {
 
 #pragma mark - PushViewController With Completion Block
 - (void) pushViewController:(UIViewController *)viewController completion:(FlipBoardNavigationControllerCompletionBlock)handler {
+    [viewController willMoveToParentViewController:self];
+    [self addChildViewController:viewController];
     _animationInProgress = YES;
     viewController.view.frame = CGRectOffset(self.view.bounds, self.view.bounds.size.width, 0);
     viewController.view.autoresizingMask =  UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
     _blackMask.alpha = 0.0;
-    [viewController willMoveToParentViewController:self];
-    [self addChildViewController:viewController];
     [self.view bringSubviewToFront:_blackMask];
     [self.view addSubview:viewController.view];
     [UIView animateWithDuration:self.transitionsAnimationDuration delay:kAnimationDelay options:0 animations:^{
