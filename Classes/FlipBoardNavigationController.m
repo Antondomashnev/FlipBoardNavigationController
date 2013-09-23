@@ -136,11 +136,39 @@ typedef enum {
     }];
 }
 
+- (void) pushViewControllerWithoutAnimation:(UIViewController *)viewController andCompletionHandler:(FlipBoardNavigationControllerCompletionBlock)handler{
+    
+    UIViewController *currentViewController = [self currentViewController];
+    
+    [currentViewController viewWillDisappear: NO];
+    [viewController willMoveToParentViewController:self];
+    [self addChildViewController:viewController];
+    [self.view bringSubviewToFront:_blackMask];
+    [self.view addSubview:viewController.view];
+    
+    CGAffineTransform transf = CGAffineTransformIdentity;
+    CGFloat scale = (self.transformCalculationBlock != nil) ? self.transformCalculationBlock(1) : 0.9f;
+    [self currentViewController].view.transform = CGAffineTransformScale(transf, scale, scale);
+    _blackMask.alpha = kMaxBlackMaskAlpha;
+    
+    [self.viewControllers addObject:viewController];
+    [viewController didMoveToParentViewController:self];
+    [currentViewController viewDidDisappear: NO];
+    _gestures = [[NSMutableArray alloc] init];
+    [self addPanGestureToViewController:[self currentViewController]];
+    
+    
+    if(handler != nil){
+        handler();
+    }
+}
+
 - (void) pushViewController:(UIViewController *)viewController {
     [self pushViewController:viewController completion:^{}];
 }
 
 #pragma mark - PopViewController With Completion Block
+
 - (void) popViewControllerWithCompletion:(FlipBoardNavigationControllerCompletionBlock)handler {
     _animationInProgress = YES;
     if (self.viewControllers.count < 2) {
