@@ -108,12 +108,16 @@ typedef enum {
 
 #pragma mark - PushViewController With Completion Block
 - (void) pushViewController:(UIViewController *)viewController completion:(FlipBoardNavigationControllerCompletionBlock)handler {
+    
+    UIViewController *currentViewController = [self currentViewController];
+    
     [viewController willMoveToParentViewController:self];
     [self addChildViewController:viewController];
     _animationInProgress = YES;
     viewController.view.frame = CGRectOffset(self.view.bounds, self.view.bounds.size.width, 0);
     viewController.view.autoresizingMask =  UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
     _blackMask.alpha = 0.0;
+    [currentViewController viewWillDisappear: YES];
     [self.view bringSubviewToFront:_blackMask];
     [self.view addSubview:viewController.view];
     [UIView animateWithDuration:self.transitionsAnimationDuration delay:kAnimationDelay options:0 animations:^{
@@ -126,6 +130,7 @@ typedef enum {
         if (finished) {
             [self.viewControllers addObject:viewController];
             [viewController didMoveToParentViewController:self];
+            [currentViewController viewDidDisappear: YES];
             _animationInProgress = NO;
             _gestures = [[NSMutableArray alloc] init];
             [self addPanGestureToViewController:[self currentViewController]];
@@ -205,6 +210,48 @@ typedef enum {
 
 - (void) popToRootViewController{
     [self popToRootViewControllerWithCompletion:nil];
+}
+
+- (void) popToRootViewControllerWithoutAnimation{
+    [self popToRootViewControllerWithoutAnimationWithCompletion: nil];
+}
+
+- (void) popToRootViewControllerWithoutAnimationWithCompletion:(FlipBoardNavigationControllerCompletionBlock)handler{
+    
+    _animationInProgress = YES;
+    if (self.viewControllers.count < 2) {
+        return;
+    }
+    
+    UIViewController *currentVC = [self currentViewController];
+    UIViewController *rootVC = [self rootViewController];
+    if(![currentVC isEqual: rootVC]){
+        [rootVC viewWillAppear:NO];
+        for(int index = [self.viewControllers count] - 2; index > 0; index--){
+            UIViewController *vc = self.viewControllers[index];
+            [vc.view removeFromSuperview];
+            [vc removeFromParentViewController];
+        }
+        
+        currentVC.view.frame = CGRectOffset(self.view.bounds, self.view.bounds.size.width, 0);
+        CGFloat scale = (self.transformCalculationBlock != nil) ? self.transformCalculationBlock(0) : 1.0f;
+        rootVC.view.transform = CGAffineTransformScale(CGAffineTransformIdentity, scale, scale);
+        rootVC.view.frame = self.view.bounds;
+        _blackMask.alpha = 0.0;
+        
+        [currentVC.view removeFromSuperview];
+        [currentVC willMoveToParentViewController:nil];
+        [self.view bringSubviewToFront:[self rootViewController].view];
+        [currentVC removeFromParentViewController];
+        [currentVC didMoveToParentViewController:nil];
+        [_viewControllers removeObjectsAtIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(1, [_viewControllers count] - 1)]];
+        _animationInProgress = NO;
+        [rootVC viewDidAppear:NO];
+        if(handler != nil){
+            handler();
+        }
+    }
+    
 }
 
 - (void) popToRootViewControllerWithCompletion:(FlipBoardNavigationControllerCompletionBlock)handler{
