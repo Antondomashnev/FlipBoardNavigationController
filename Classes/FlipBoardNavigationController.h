@@ -45,6 +45,8 @@ typedef void (^FlipBoardNavigationControllerCompletionBlock)(void);
 - (void) popViewControllerWithCompletion:(FlipBoardNavigationControllerCompletionBlock)handler;
 - (void) popToRootViewController;
 - (void) popToRootViewControllerWithCompletion:(FlipBoardNavigationControllerCompletionBlock)handler;
+- (void) popToRootViewControllerWithoutAnimation;
+- (void) popToRootViewControllerWithoutAnimationWithCompletion:(FlipBoardNavigationControllerCompletionBlock)handler;
 
 @end
 
