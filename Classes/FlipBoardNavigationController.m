@@ -388,10 +388,19 @@ typedef enum {
 
 #pragma mark - Gesture recognizer
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
-    UIViewController * vc =  [self.viewControllers lastObject];
-    _panOrigin = vc.view.frame.origin;
-    gestureRecognizer.enabled = YES;
-    return !_animationInProgress;
+    
+    if((!_animationInProgress &&
+        ![gestureRecognizer isEqual: [self currentViewController].flipboardNavigationControllerPanGesture]) ||
+       ([gestureRecognizer isEqual: [self currentViewController].flipboardNavigationControllerPanGesture] && gestureRecognizer.numberOfTouches == 0)){
+        
+        UIViewController * vc =  [self.viewControllers lastObject];
+        _panOrigin = vc.view.frame.origin;
+        gestureRecognizer.enabled = YES;
+        return YES;
+    }
+    else{
+        return NO;
+    }
 }
 
 - (BOOL) gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
@@ -405,6 +414,10 @@ typedef enum {
 #pragma mark - Handle Panning Activity
 - (void) gestureRecognizerDidPan:(UIPanGestureRecognizer*)panGesture {
     if(_animationInProgress) return;
+    
+    if(panGesture.state == UIGestureRecognizerStateBegan){
+        panGesture.maximumNumberOfTouches = panGesture.numberOfTouches;
+    }
     
     CGPoint currentPoint = [panGesture translationInView:self.view];
     CGFloat x = currentPoint.x + _panOrigin.x;
@@ -429,6 +442,7 @@ typedef enum {
     [self transformAtPercentage:_percentageOffsetFromLeft];
     
     if (panGesture.state == UIGestureRecognizerStateEnded || panGesture.state == UIGestureRecognizerStateCancelled) {
+        panGesture.maximumNumberOfTouches = NSUIntegerMax;
         // If velocity is greater than 100 the Execute the Completion base on pan direction
         if(abs(vel.x) > 100) {
             [self completeSlidingAnimationWithDirection:panDirection];
