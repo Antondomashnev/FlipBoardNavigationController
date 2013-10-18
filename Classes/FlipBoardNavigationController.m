@@ -39,6 +39,96 @@ typedef enum {
     PanDirectionRight = 2
 } PanDirection;
 
+#pragma mark - UIViewController Category
+
+NSString* const FlipboardNavigationControllerPanGesture = @"FlipboardNavigationControllerPanGesture";
+NSString* const FlipboardNavigationControllerViewsWithEnabledScrollToTopProperty = @"FlipboardNavigationControllerViewsWithEnabledScrollToTopProperty";
+
+@interface UIViewController(FlipBoardNavigationControllerPrivate)
+
+@property (nonatomic, strong) NSMutableArray *viewsWithEnabledScrollToTopProperty;
+
+@end
+
+//For Global Access of flipViewController
+@implementation UIViewController (FlipBoardNavigationController)
+
+@dynamic flipboardNavigationController;
+
+#pragma mark - Helpers
+
+- (void)disableScrollsToTopInScrollingViews{
+    
+    self.viewsWithEnabledScrollToTopProperty = [self scrollToTopsViewsInHierarchy];
+    [self.viewsWithEnabledScrollToTopProperty enumerateObjectsUsingBlock:^(UIScrollView *view, NSUInteger idx, BOOL *stop) {
+        view.scrollsToTop = NO;
+    }];
+}
+
+- (void)enableScrollsToTopInScrollingViews{
+    
+    [self.viewsWithEnabledScrollToTopProperty enumerateObjectsUsingBlock:^(UIScrollView *view, NSUInteger idx, BOOL *stop) {
+        view.scrollsToTop = YES;
+    }];
+}
+
+- (NSMutableArray *)scrollToTopsViewsInHierarchy{
+    
+    NSMutableArray *scrollingViews = [NSMutableArray new];
+    [self putScrollToTopsViewsInViewsHierarchy:self.view intoArray:scrollingViews];
+    
+    return scrollingViews;
+}
+
+- (void)putScrollToTopsViewsInViewsHierarchy:(UIView *)view intoArray:(NSMutableArray *)array{
+    
+    for(UIView *subview in view.subviews){
+        
+        [self putScrollToTopsViewsInViewsHierarchy: subview intoArray: array];
+        
+        if([subview respondsToSelector:@selector(setScrollsToTop:)] &&
+           ((UIScrollView *)subview).scrollsToTop){
+            [array addObject: subview];
+        }
+    }
+}
+
+#pragma mark - Properties
+
+- (void)setViewsWithEnabledScrollToTopProperty:(NSMutableArray *)viewsWithEnabledScrollToTopProperty{
+    objc_setAssociatedObject(self, (__bridge const void *)(FlipboardNavigationControllerViewsWithEnabledScrollToTopProperty), viewsWithEnabledScrollToTopProperty, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (NSMutableArray *)viewsWithEnabledScrollToTopProperty{
+    return objc_getAssociatedObject(self, (__bridge const void *)(FlipboardNavigationControllerViewsWithEnabledScrollToTopProperty));
+}
+
+- (void)setFlipboardNavigationControllerPanGesture:(UIPanGestureRecognizer *)flipboardNavigationControllerPanGesture{
+    objc_setAssociatedObject(self, (__bridge const void *)(FlipboardNavigationControllerPanGesture), flipboardNavigationControllerPanGesture, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (UIPanGestureRecognizer *)flipboardNavigationControllerPanGesture{
+    return objc_getAssociatedObject(self, (__bridge const void *)(FlipboardNavigationControllerPanGesture));
+}
+
+- (FlipBoardNavigationController *)flipboardNavigationController
+{
+    
+    if([self.parentViewController isKindOfClass:[FlipBoardNavigationController class]]){
+        return (FlipBoardNavigationController*)self.parentViewController;
+    }
+    else if([self.parentViewController isKindOfClass:[UINavigationController class]] &&
+            [self.parentViewController.parentViewController isKindOfClass:[FlipBoardNavigationController class]]){
+        return (FlipBoardNavigationController*)[self.parentViewController parentViewController];
+    }
+    else{
+        return nil;
+    }
+    
+}
+
+@end
+
 @interface UIViewController()
 
 @property (nonatomic, retain, readwrite) UIPanGestureRecognizer *flipboardNavigationControllerPanGesture;
@@ -131,6 +221,7 @@ typedef enum {
             [self.viewControllers addObject:viewController];
             [viewController didMoveToParentViewController:self];
             [currentViewController viewDidDisappear: YES];
+            [currentViewController disableScrollsToTopInScrollingViews];
             _animationInProgress = NO;
             _gestures = [[NSMutableArray alloc] init];
             [self addPanGestureToViewController:[self currentViewController]];
@@ -159,6 +250,7 @@ typedef enum {
     [self.viewControllers addObject:viewController];
     [viewController didMoveToParentViewController:self];
     [currentViewController viewDidDisappear: NO];
+    [currentViewController disableScrollsToTopInScrollingViews];
     _gestures = [[NSMutableArray alloc] init];
     [self addPanGestureToViewController:[self currentViewController]];
     
@@ -200,6 +292,7 @@ typedef enum {
             [self.viewControllers removeObject:currentVC];
             _animationInProgress = NO;
             [previousVC viewDidAppear:NO];
+            [previousVC enableScrollsToTopInScrollingViews];
             if(handler != nil){
                 handler();
             }
@@ -247,6 +340,7 @@ typedef enum {
         [_viewControllers removeObjectsAtIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(1, [_viewControllers count] - 1)]];
         _animationInProgress = NO;
         [rootVC viewDidAppear:NO];
+        [rootVC enableScrollsToTopInScrollingViews];
         if(handler != nil){
             handler();
         }
@@ -286,6 +380,7 @@ typedef enum {
                 [_viewControllers removeObjectsAtIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(1, [_viewControllers count] - 1)]];
                 _animationInProgress = NO;
                 [rootVC viewDidAppear:NO];
+                [rootVC enableScrollsToTopInScrollingViews];
                 if(handler != nil){
                     handler();
                 }
@@ -506,42 +601,5 @@ typedef enum {
         return bounds;
     }
 }
-
-@end
-
-
-
-#pragma mark - UIViewController Category
-
-NSString* const FlipboardNavigationControllerPanGesture = @"FlipboardNavigationControllerPanGesture";
-
-//For Global Access of flipViewController
-@implementation UIViewController (FlipBoardNavigationController)
-@dynamic flipboardNavigationController;
-
-- (void)setFlipboardNavigationControllerPanGesture:(UIPanGestureRecognizer *)flipboardNavigationControllerPanGesture{
-    objc_setAssociatedObject(self, (__bridge const void *)(FlipboardNavigationControllerPanGesture), flipboardNavigationControllerPanGesture, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
-- (UIPanGestureRecognizer *)flipboardNavigationControllerPanGesture{
-    return objc_getAssociatedObject(self, (__bridge const void *)(FlipboardNavigationControllerPanGesture));
-}
-
-- (FlipBoardNavigationController *)flipboardNavigationController
-{
-    
-    if([self.parentViewController isKindOfClass:[FlipBoardNavigationController class]]){
-        return (FlipBoardNavigationController*)self.parentViewController;
-    }
-    else if([self.parentViewController isKindOfClass:[UINavigationController class]] &&
-            [self.parentViewController.parentViewController isKindOfClass:[FlipBoardNavigationController class]]){
-        return (FlipBoardNavigationController*)[self.parentViewController parentViewController];
-    }
-    else{
-        return nil;
-    }
-    
-}
-
 
 @end
